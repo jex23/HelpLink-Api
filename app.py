@@ -63,6 +63,9 @@ def create_app():
                 'me': '/api/auth/me',
                 'update_profile': '/api/auth/profile',
                 'change_password': '/api/auth/change-password',
+                'forgot_password': '/api/auth/forgot-password',
+                'verify_otp': '/api/auth/verify-otp',
+                'reset_password': '/api/auth/reset-password',
                 'credentials': '/api/credentials',
                 'ids': '/api/ids',
                 'profile_image': '/api/profile-image',
@@ -87,7 +90,21 @@ def create_app():
                 'send_message': '/api/chats/<id>/messages (POST)',
                 'get_messages': '/api/chats/<id>/messages (GET)',
                 'mark_seen': '/api/chats/<id>/messages/seen (PUT)',
-                'add_participant': '/api/chats/<id>/participants (POST)'
+                'add_participant': '/api/chats/<id>/participants (POST)',
+                'admin_dashboard': '/api/admin/dashboard (GET)',
+                'admin_statistics': '/api/admin/statistics (GET)',
+                'admin_users': '/api/admin/users (GET)',
+                'admin_posts': '/api/admin/posts (GET)',
+                'admin_comments': '/api/admin/comments (GET)',
+                'admin_donations': '/api/admin/donations (GET)',
+                'admin_supporters': '/api/admin/supporters (GET)',
+                'admin_verification_requests': '/api/admin/users/verification-requests (GET)',
+                'admin_update_badge': '/api/admin/users/<id>/badge (PUT)',
+                'admin_update_account_type': '/api/admin/users/<id>/account-type (PUT)',
+                'admin_update_post_status': '/api/admin/posts/<id>/status (PUT)',
+                'admin_update_comment_status': '/api/admin/comments/<id>/status (PUT)',
+                'admin_update_donation_status': '/api/admin/donations/<id>/status (PUT)',
+                'admin_activity': '/api/admin/activity (GET)'
             }
         }
 
@@ -115,10 +132,12 @@ def register_blueprints(app):
     from routes.credentials import credentials_bp
     from routes.post import post_bp
     from routes.chat import chat_bp
+    from routes.admin import admin_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(credentials_bp, url_prefix='/api')
     app.register_blueprint(post_bp, url_prefix='/api/posts')
     app.register_blueprint(chat_bp, url_prefix='/api/chats')
+    app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
 def register_error_handlers(app):
     """Register error handlers"""

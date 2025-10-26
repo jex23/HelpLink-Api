@@ -5,6 +5,7 @@ from functools import wraps
 
 from models.auth_model import AuthModel
 from utils.r2_storage import r2_storage
+from utils.email_service import email_service
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -467,3 +468,240 @@ def change_password(current_user):
     except Exception as e:
         print(f"Change password error: {e}")
         return jsonify({'error': 'Failed to change password', 'details': str(e)}), 500
+
+@auth_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    """
+    Request password reset OTP
+    Retrieves user email from database and sends OTP code
+
+    JSON body:
+        - email (required)
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        email = data.get('email')
+
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+
+        # Normalize email
+        email = email.lower().strip()
+
+        # Get database connection
+        from app import get_db_connection
+        conn = get_db_connection()
+
+        # Get user by email from database
+        print(f"[Password Reset] Looking up user with email: {email}")
+        user = AuthModel.get_user_by_email(conn, email)
+
+        if not user:
+            # Don't reveal if email exists or not for security
+            print(f"[Password Reset] No user found with email: {email}")
+            return jsonify({
+                'message': 'If the email exists, an OTP has been sent to it'
+            }), 200
+
+        # User found - log details (without sensitive info)
+        print(f"[Password Reset] User found - ID: {user['id']}, Name: {user['first_name']} {user['last_name']}")
+        print(f"[Password Reset] Sending OTP to email retrieved from database: {user['email']}")
+
+        # Create OTP
+        otp_code = AuthModel.create_otp(conn, user['id'], otp_type='password_reset', validity_minutes=3)
+
+        if not otp_code:
+            print(f"[Password Reset] Failed to generate OTP for user ID: {user['id']}")
+            return jsonify({'error': 'Failed to generate OTP'}), 500
+
+        print(f"[Password Reset] OTP generated successfully for user ID: {user['id']}")
+
+        # Send OTP via email using the email from database
+        user_name = f"{user['first_name']} {user['last_name']}"
+        user_email = user['email']  # Email retrieved from users table
+
+        email_sent = email_service.send_otp_email(
+            to_email=user_email,
+            otp_code=otp_code,
+            user_name=user_name,
+            otp_type='password_reset'
+        )
+
+        if not email_sent:
+            print(f"[Password Reset] Warning: Failed to send OTP email to {user_email}")
+            # Still return success to not reveal if email exists
+        else:
+            print(f"[Password Reset] OTP email sent successfully to {user_email}")
+
+        return jsonify({
+            'message': 'If the email exists, an OTP has been sent to it',
+            'email': email
+        }), 200
+
+    except Exception as e:
+        print(f"[Password Reset] Error in forgot_password: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to process request', 'details': str(e)}), 500
+
+@auth_bp.route('/verify-otp', methods=['POST'])
+def verify_otp():
+    """
+    Verify OTP code
+    Retrieves user from database and validates OTP
+
+    JSON body:
+        - email (required)
+        - otp_code (required)
+        - otp_type (optional, default: 'password_reset')
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        email = data.get('email')
+        otp_code = data.get('otp_code')
+        otp_type = data.get('otp_type', 'password_reset')
+
+        if not all([email, otp_code]):
+            return jsonify({
+                'error': 'Missing required fields',
+                'required': ['email', 'otp_code']
+            }), 400
+
+        # Normalize email
+        email = email.lower().strip()
+
+        # Get database connection
+        from app import get_db_connection
+        conn = get_db_connection()
+
+        # Get user by email from database
+        print(f"[OTP Verify] Looking up user with email: {email}")
+        user = AuthModel.get_user_by_email(conn, email)
+
+        if not user:
+            print(f"[OTP Verify] No user found with email: {email}")
+            return jsonify({'error': 'Invalid OTP code'}), 401
+
+        print(f"[OTP Verify] User found - ID: {user['id']}, verifying OTP...")
+
+        # Verify OTP
+        otp_record = AuthModel.verify_otp(conn, user['id'], otp_code, otp_type)
+
+        if not otp_record:
+            print(f"[OTP Verify] Invalid or expired OTP for user ID: {user['id']}")
+            return jsonify({'error': 'Invalid or expired OTP code'}), 401
+
+        print(f"[OTP Verify] OTP verified successfully for user ID: {user['id']}")
+
+        return jsonify({
+            'message': 'OTP verified successfully',
+            'email': email,
+            'otp_valid': True
+        }), 200
+
+    except Exception as e:
+        print(f"[OTP Verify] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to verify OTP', 'details': str(e)}), 500
+
+@auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    """
+    Reset password using OTP
+    Retrieves user from database, verifies OTP, and updates password
+
+    JSON body:
+        - email (required)
+        - otp_code (required)
+        - new_password (required)
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        email = data.get('email')
+        otp_code = data.get('otp_code')
+        new_password = data.get('new_password')
+
+        if not all([email, otp_code, new_password]):
+            return jsonify({
+                'error': 'Missing required fields',
+                'required': ['email', 'otp_code', 'new_password']
+            }), 400
+
+        # Validate new password length
+        if len(new_password) < 6:
+            return jsonify({'error': 'New password must be at least 6 characters long'}), 400
+
+        # Normalize email
+        email = email.lower().strip()
+
+        # Get database connection
+        from app import get_db_connection
+        conn = get_db_connection()
+
+        # Get user by email from database
+        print(f"[Password Reset] Looking up user with email: {email}")
+        user = AuthModel.get_user_by_email(conn, email)
+
+        if not user:
+            print(f"[Password Reset] No user found with email: {email}")
+            return jsonify({'error': 'Invalid OTP code'}), 401
+
+        print(f"[Password Reset] User found - ID: {user['id']}, Email: {user['email']}")
+
+        # Verify OTP
+        print(f"[Password Reset] Verifying OTP for user ID: {user['id']}")
+        otp_record = AuthModel.verify_otp(conn, user['id'], otp_code, 'password_reset')
+
+        if not otp_record:
+            print(f"[Password Reset] Invalid or expired OTP for user ID: {user['id']}")
+            return jsonify({'error': 'Invalid or expired OTP code'}), 401
+
+        print(f"[Password Reset] OTP verified, updating password for user ID: {user['id']}")
+
+        # Hash new password
+        new_password_hash = AuthModel.hash_password(new_password)
+
+        # Update password in database
+        success = AuthModel.update_user(conn, user['id'], {
+            'password_hash': new_password_hash
+        })
+
+        if not success:
+            print(f"[Password Reset] Failed to update password in database for user ID: {user['id']}")
+            return jsonify({'error': 'Failed to update password'}), 500
+
+        print(f"[Password Reset] Password updated successfully for user ID: {user['id']}")
+
+        # Mark OTP as used
+        AuthModel.mark_otp_as_used(conn, otp_record['id'])
+        print(f"[Password Reset] OTP marked as used (ID: {otp_record['id']})")
+
+        # Invalidate all other active OTPs for this user
+        AuthModel.invalidate_user_otps(conn, user['id'])
+        print(f"[Password Reset] All active OTPs invalidated for user ID: {user['id']}")
+
+        print(f"[Password Reset] Password reset completed successfully for {user['email']}")
+
+        return jsonify({
+            'message': 'Password reset successfully',
+            'email': email
+        }), 200
+
+    except Exception as e:
+        print(f"[Password Reset] Error in reset_password: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to reset password', 'details': str(e)}), 500

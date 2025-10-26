@@ -1,6 +1,8 @@
 import bcrypt
 import pymysql
-from datetime import datetime
+import random
+import string
+from datetime import datetime, timedelta
 
 class AuthModel:
     """Authentication model for user operations"""
@@ -168,4 +170,159 @@ class AuthModel:
         except Exception as e:
             connection.rollback()
             print(f"Error updating user: {e}")
+            return False
+
+    # ==================== OTP MANAGEMENT ====================
+
+    @staticmethod
+    def generate_otp(length=6):
+        """
+        Generate a random OTP code
+
+        Args:
+            length: Length of OTP code (default: 6)
+
+        Returns:
+            str: OTP code
+        """
+        return ''.join(random.choices(string.digits, k=length))
+
+    @staticmethod
+    def create_otp(connection, user_id, otp_type='password_reset', validity_minutes=3):
+        """
+        Create a new OTP for a user
+
+        Args:
+            connection: Database connection
+            user_id: User's ID
+            otp_type: Type of OTP ('email_verification', 'password_reset', 'login')
+            validity_minutes: How long the OTP is valid (default: 3 minutes)
+
+        Returns:
+            str: OTP code if successful, None otherwise
+        """
+        try:
+            # Generate OTP
+            otp_code = AuthModel.generate_otp()
+
+            # Invalidate any existing active OTPs of the same type for this user
+            with connection.cursor() as cursor:
+                invalidate_sql = """
+                    UPDATE user_otps
+                    SET validity = 'inactive'
+                    WHERE user_id = %s AND type = %s AND validity = 'active'
+                """
+                cursor.execute(invalidate_sql, (user_id, otp_type))
+
+                # Create new OTP
+                expires_at = datetime.now() + timedelta(minutes=validity_minutes)
+                insert_sql = """
+                    INSERT INTO user_otps (
+                        user_id, otp_code, type, validity, is_used, expires_at
+                    ) VALUES (%s, %s, %s, 'active', 0, %s)
+                """
+                cursor.execute(insert_sql, (user_id, otp_code, otp_type, expires_at))
+                connection.commit()
+
+                return otp_code
+
+        except Exception as e:
+            connection.rollback()
+            print(f"Error creating OTP: {e}")
+            return None
+
+    @staticmethod
+    def verify_otp(connection, user_id, otp_code, otp_type='password_reset'):
+        """
+        Verify an OTP code
+
+        Args:
+            connection: Database connection
+            user_id: User's ID
+            otp_code: OTP code to verify
+            otp_type: Type of OTP to verify
+
+        Returns:
+            dict: OTP record if valid, None otherwise
+        """
+        try:
+            with connection.cursor() as cursor:
+                sql = """
+                    SELECT * FROM user_otps
+                    WHERE user_id = %s
+                    AND otp_code = %s
+                    AND type = %s
+                    AND validity = 'active'
+                    AND is_used = 0
+                    AND expires_at > NOW()
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """
+                cursor.execute(sql, (user_id, otp_code, otp_type))
+                return cursor.fetchone()
+        except Exception as e:
+            print(f"Error verifying OTP: {e}")
+            return None
+
+    @staticmethod
+    def mark_otp_as_used(connection, otp_id):
+        """
+        Mark an OTP as used
+
+        Args:
+            connection: Database connection
+            otp_id: OTP record ID
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            with connection.cursor() as cursor:
+                sql = """
+                    UPDATE user_otps
+                    SET is_used = 1, validity = 'inactive'
+                    WHERE id = %s
+                """
+                cursor.execute(sql, (otp_id,))
+                connection.commit()
+                return True
+        except Exception as e:
+            connection.rollback()
+            print(f"Error marking OTP as used: {e}")
+            return False
+
+    @staticmethod
+    def invalidate_user_otps(connection, user_id, otp_type=None):
+        """
+        Invalidate all active OTPs for a user
+
+        Args:
+            connection: Database connection
+            user_id: User's ID
+            otp_type: Optional type of OTP to invalidate (if None, invalidates all types)
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            with connection.cursor() as cursor:
+                if otp_type:
+                    sql = """
+                        UPDATE user_otps
+                        SET validity = 'inactive'
+                        WHERE user_id = %s AND type = %s AND validity = 'active'
+                    """
+                    cursor.execute(sql, (user_id, otp_type))
+                else:
+                    sql = """
+                        UPDATE user_otps
+                        SET validity = 'inactive'
+                        WHERE user_id = %s AND validity = 'active'
+                    """
+                    cursor.execute(sql, (user_id,))
+                connection.commit()
+                return True
+        except Exception as e:
+            connection.rollback()
+            print(f"Error invalidating OTPs: {e}")
             return False
