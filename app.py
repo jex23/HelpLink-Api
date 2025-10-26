@@ -178,6 +178,16 @@ def get_db_connection():
 # Create app instance
 app = create_app()
 
+# ASGI wrapper for uvicorn compatibility
+# This allows Flask (WSGI) to run with uvicorn (ASGI server)
+try:
+    from asgiref.wsgi import WsgiToAsgi
+    asgi_app = WsgiToAsgi(app)
+except ImportError:
+    # If asgiref is not installed, use the Flask app directly
+    asgi_app = app
+    print("Warning: asgiref not installed. Install it for uvicorn support: pip install asgiref")
+
 if __name__ == '__main__':
     print("=" * 60)
     print("HelpLink API Starting...")
