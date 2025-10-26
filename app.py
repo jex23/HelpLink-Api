@@ -16,18 +16,27 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-    # Database configuration
-    app.config['DB_USER'] = os.getenv('DB_USER')
-    app.config['DB_PASSWORD'] = os.getenv('DB_PASSWORD')
-    app.config['DB_HOST'] = os.getenv('DB_HOST')
+    # Database configuration with fallback values
+    app.config['DB_USER'] = os.getenv('DB_USER', 'james23')
+    app.config['DB_PASSWORD'] = os.getenv('DB_PASSWORD', 'J@mes2410117')
+    app.config['DB_HOST'] = os.getenv('DB_HOST', '179.61.246.136')
     app.config['DB_PORT'] = int(os.getenv('DB_PORT', 3306))
-    app.config['DB_NAME'] = os.getenv('DB_NAME')
+    app.config['DB_NAME'] = os.getenv('DB_NAME', 'helplink')
 
-    # R2 Storage configuration
-    app.config['R2_ACCESS_KEY'] = os.getenv('r2_access_key')
-    app.config['R2_SECRET_KEY'] = os.getenv('r2_secret_key')
-    app.config['R2_ENDPOINT'] = os.getenv('r2_endpoint')
-    app.config['R2_BUCKET_NAME'] = os.getenv('r2_bucket_name')
+    # R2 Storage configuration with fallback values
+    app.config['R2_ACCESS_KEY'] = os.getenv('r2_access_key', '9034d68eb9c71f60ae2f7a519426d894')
+    app.config['R2_SECRET_KEY'] = os.getenv('r2_secret_key', '07fb5ffd266b9b14568ec6026e0d7a7d0d19152d03f62f0604358d05b58f9d42')
+    app.config['R2_ENDPOINT'] = os.getenv('r2_endpoint', 'https://101c0dbcb33f2b302a0c46862e4e3188.r2.cloudflarestorage.com')
+    app.config['R2_BUCKET_NAME'] = os.getenv('r2_bucket_name', 'helplink')
+
+    # SMTP configuration with fallback values
+    app.config['SMTP_HOST'] = os.getenv('SMTP_HOST', 'smtp.gmail.com')
+    app.config['SMTP_PORT'] = int(os.getenv('SMTP_PORT', 465))
+    app.config['SMTP_USERNAME'] = os.getenv('SMTP_USERNAME', 'helplinkteam2025@gmail.com')
+    app.config['SMTP_PASSWORD'] = os.getenv('SMTP_PASSWORD', 'hhghmxkdljnkhppq')
+    app.config['SMTP_ENCRYPTION'] = os.getenv('SMTP_ENCRYPTION', 'ssl')
+    app.config['SMTP_FROM_ADDRESS'] = os.getenv('SMTP_FROM_ADDRESS', 'helplinkteam2025@gmail.com')
+    app.config['SMTP_FROM_NAME'] = os.getenv('SMTP_FROM_NAME', 'HelpLink Team').strip('"')
 
     # Initialize R2 storage with app context
     with app.app_context():

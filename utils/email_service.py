@@ -11,13 +11,14 @@ class EmailService:
     """Email service for sending emails"""
 
     def __init__(self):
+        # SMTP configuration with fallback values
         self.smtp_server = os.getenv('SMTP_HOST', os.getenv('SMTP_SERVER', 'smtp.gmail.com'))
-        self.smtp_port = int(os.getenv('SMTP_PORT', 587))
-        self.smtp_username = os.getenv('SMTP_USERNAME')
-        self.smtp_password = os.getenv('SMTP_PASSWORD')
-        self.smtp_encryption = os.getenv('SMTP_ENCRYPTION', 'tls').lower()
+        self.smtp_port = int(os.getenv('SMTP_PORT', 465))
+        self.smtp_username = os.getenv('SMTP_USERNAME', 'helplinkteam2025@gmail.com')
+        self.smtp_password = os.getenv('SMTP_PASSWORD', 'hhghmxkdljnkhppq')
+        self.smtp_encryption = os.getenv('SMTP_ENCRYPTION', 'ssl').lower()
         self.from_email = os.getenv('SMTP_FROM_ADDRESS', os.getenv('FROM_EMAIL', self.smtp_username))
-        self.from_name = os.getenv('SMTP_FROM_NAME', os.getenv('FROM_NAME', 'HelpLink')).strip('"')
+        self.from_name = os.getenv('SMTP_FROM_NAME', os.getenv('FROM_NAME', 'HelpLink Team')).strip('"')
 
     def send_email(self, to_email, subject, html_content, text_content=None):
         """
