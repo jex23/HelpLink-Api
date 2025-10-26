@@ -159,14 +159,16 @@ def get_db_connection():
     Create and return a database connection
     Uses Flask's g object to maintain connection during request lifecycle
     """
+    from flask import current_app
+
     if 'db' not in g:
         try:
             g.db = pymysql.connect(
-                host=app.config['DB_HOST'],
-                user=app.config['DB_USER'],
-                password=app.config['DB_PASSWORD'],
-                database=app.config['DB_NAME'],
-                port=app.config['DB_PORT'],
+                host=current_app.config['DB_HOST'],
+                user=current_app.config['DB_USER'],
+                password=current_app.config['DB_PASSWORD'],
+                database=current_app.config['DB_NAME'],
+                port=current_app.config['DB_PORT'],
                 cursorclass=pymysql.cursors.DictCursor,
                 autocommit=False
             )
