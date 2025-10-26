@@ -200,4 +200,4 @@ if __name__ == '__main__':
     print("Health check: http://localhost:5001/health")
     print("\nPress CTRL+C to stop the server")
     print("=" * 60)
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='127.0.0.1', port=4444)
