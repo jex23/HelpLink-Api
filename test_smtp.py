@@ -1,78 +1,42 @@
+#!/usr/bin/env python3
 """
-Test SMTP configuration to verify email sending works
+Test script to verify SMTP email sending functionality
 """
-import os
-from dotenv import load_dotenv
 from utils.email_service import email_service
 
-# Load environment variables
-load_dotenv()
-
-
-def test_smtp_connection():
-    """Test SMTP connection and email sending"""
+def test_smtp():
+    """Test sending an email via SMTP"""
     print("=" * 60)
-    print("SMTP Configuration Test")
+    print("Testing SMTP Email Sending")
     print("=" * 60)
 
-    # Display current configuration
-    print("\nCurrent SMTP Settings:")
-    print(f"  Host: {email_service.smtp_server}")
-    print(f"  Port: {email_service.smtp_port}")
-    print(f"  Username: {email_service.smtp_username}")
-    print(f"  Password: {'*' * len(email_service.smtp_password) if email_service.smtp_password else 'Not set'}")
-    print(f"  Encryption: {email_service.smtp_encryption}")
-    print(f"  From Email: {email_service.from_email}")
-    print(f"  From Name: {email_service.from_name}")
-    print("=" * 60)
+    # Test recipient
+    test_email = "jamesgalos223@gmail.com"
+    test_name = "James Galos"
+    test_otp = "123456"
 
-    # Check if SMTP is configured
-    if not email_service.smtp_username or not email_service.smtp_password:
-        print("\n❌ SMTP not configured!")
-        print("Please set SMTP_USERNAME and SMTP_PASSWORD in your .env file")
-        return False
+    print(f"\nSending test OTP email to: {test_email}")
+    print(f"OTP Code: {test_otp}")
+    print("\nAttempting to send email...\n")
 
-    # Get test email
-    test_email = input("\nEnter email address to send test to (or press Enter to use SMTP_USERNAME): ").strip()
-    if not test_email:
-        test_email = email_service.smtp_username
-
-    print(f"\nSending test email to: {test_email}")
-
-    # Send test email
+    # Send test OTP email
     success = email_service.send_otp_email(
         to_email=test_email,
-        otp_code="123456",
-        user_name="Test User",
-        otp_type="password_reset"
+        otp_code=test_otp,
+        user_name=test_name,
+        otp_type='password_reset'
     )
 
     print("\n" + "=" * 60)
     if success:
-        print("✓ Test email sent successfully!")
-        print("Check your inbox (and spam folder)")
+        print("✓ SUCCESS: Email sent successfully!")
+        print(f"✓ Check {test_email} for the test OTP email")
     else:
-        print("✗ Failed to send test email")
-        print("Check the error message above")
+        print("✗ FAILED: Email sending failed")
+        print("✗ Please check SMTP configuration and credentials")
     print("=" * 60)
 
     return success
 
-
-def main():
-    """Main function"""
-    print("\n🧪 SMTP Test Script for HelpLink API")
-    print("This will test your email configuration\n")
-
-    try:
-        test_smtp_connection()
-    except KeyboardInterrupt:
-        print("\n\n⚠️  Test interrupted by user")
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
-        import traceback
-        traceback.print_exc()
-
-
 if __name__ == "__main__":
-    main()
+    test_smtp()

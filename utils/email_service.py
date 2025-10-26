@@ -102,7 +102,7 @@ class EmailService:
             subject = "Verification Code - HelpLink"
             purpose = "complete your request"
 
-        # HTML email template
+        # HTML email template with blue branding
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -117,27 +117,33 @@ class EmailService:
                     max-width: 600px;
                     margin: 0 auto;
                     padding: 20px;
+                    background-color: #f5f5f5;
                 }}
                 .container {{
-                    background-color: #f9f9f9;
+                    background-color: #ffffff;
                     border-radius: 10px;
-                    padding: 30px;
+                    padding: 0;
                     margin: 20px 0;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    overflow: hidden;
                 }}
                 .header {{
                     text-align: center;
-                    padding-bottom: 20px;
-                    border-bottom: 2px solid #4CAF50;
+                    padding: 30px 20px;
+                    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+                    border-bottom: 3px solid #1565C0;
                 }}
                 .header h1 {{
-                    color: #4CAF50;
+                    color: white;
                     margin: 0;
+                    font-size: 36px;
+                    font-weight: bold;
                 }}
                 .content {{
-                    padding: 30px 0;
+                    padding: 30px;
                 }}
                 .otp-box {{
-                    background-color: #4CAF50;
+                    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
                     color: white;
                     font-size: 32px;
                     font-weight: bold;
@@ -146,17 +152,26 @@ class EmailService:
                     border-radius: 8px;
                     letter-spacing: 8px;
                     margin: 20px 0;
+                    box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3);
                 }}
                 .info {{
-                    background-color: #fff3cd;
-                    border-left: 4px solid #ffc107;
+                    background-color: #E3F2FD;
+                    border-left: 4px solid #2196F3;
                     padding: 15px;
                     margin: 20px 0;
                     border-radius: 4px;
                 }}
+                .info ul {{
+                    margin: 10px 0;
+                    padding-left: 20px;
+                }}
+                .info li {{
+                    margin: 5px 0;
+                }}
                 .footer {{
                     text-align: center;
-                    padding-top: 20px;
+                    padding: 20px 30px;
+                    background-color: #f5f5f5;
                     border-top: 1px solid #ddd;
                     color: #666;
                     font-size: 14px;
@@ -177,8 +192,8 @@ class EmailService:
                     </div>
 
                     <div class="info">
-                        <strong>Important:</strong>
-                        <ul style="margin: 10px 0;">
+                        <strong style="color: #1565C0;">Important:</strong>
+                        <ul>
                             <li>This code is valid for <strong>3 minutes</strong></li>
                             <li>Do not share this code with anyone</li>
                             <li>If you didn't request this code, please ignore this email</li>
